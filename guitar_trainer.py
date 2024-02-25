@@ -2,6 +2,7 @@ import pyaudio
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
+import scipy.fft as fft
 
 def record_stream(record_seconds=5):
     '''
@@ -37,7 +38,13 @@ def main():
     Train playing the guitar from sheet music
     '''
 
-    record_stream(record_seconds=2)
+    time, amplitude = record_stream(record_seconds=2)
+
+    spectrum = fft.fft(amplitude)
+    frequency = fft.fftfreq(amplitude.shape[0], d=(time[1] - time[0]))
+    plt.plot(frequency, spectrum)
+    plt.xlim([0, 1000])
+    plt.show()
 
     pass
 
