@@ -57,19 +57,26 @@ def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=1024,
         # Find the index of the highest frequency component
         index = np.argmax(spectrum_norm)
 
+        # Also find the next highest frequency
+        try:
+            index2 = np.argmax(spectrum_norm[:index - 1])
+        except ValueError:
+            index2 = 0
+
         # Retrieve the values associated with the index
         max_freq = np.abs(frequency[index])
+        max_freq2 = np.abs(frequency[index2])
         max_spec = spectrum_norm[index]
         s = f"{max_freq:.2f} {max_spec:.2e}"
         print(s)
 
-        # Check the frequency ratio (or the next octave)
+        # Check the frequency ratio
         ratio = max_freq / freq
-        ov_ratio = max_freq / (2 * freq)
+        ratio2 = max_freq2 / freq
 
         # Check if the ratio is within the tolerances
         comp1 = ratio > tol_m and ratio < tol_p
-        comp2 = ov_ratio > tol_m and ov_ratio < tol_p
+        comp2 = ratio2 > tol_m and ratio2 < tol_p
 
         if comp1 or comp2:
             found_consecutive += 1
