@@ -236,13 +236,19 @@ def main():
         note_tone = NOTES[note_name]
 
         # Paint the chosen note to the terminal
+        print("Play this note:")
         s = paint_note(POSITIONS[note_name])
         print(s)
 
         is_found = find_frequency(note_freq(note_tone), n_consecutive=8,
                                   record_seconds=record_seconds)
 
-        print(is_found)
+        # Feedback
+        if is_found:
+            s = "That's right!"
+        else:
+            s = "Sorry, that was not the note"
+        print(s)
 
 if __name__ == "__main__":
     main()
