@@ -53,8 +53,9 @@ POSITIONS = {
         "mi1": 12,
         }
 
+
 def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=2048,
-                   chunkps=16):
+                   chunkps=16, debug=False):
     '''
     Keep recording until freq is found a n_consecutive number of times,
     consecutively
@@ -118,6 +119,10 @@ def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=2048,
         max_freq2 = np.abs(frequency[index2])
         max_spec = spectrum_norm[index]
 
+        if debug:
+            s = f"{max_freq:.2f} {max_spec:.2e}"
+            print(s, max_freq2)
+
         # Check the frequency ratio
         ratio = max_freq / freq
         ratio2 = max_freq2 / freq
@@ -145,7 +150,11 @@ def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=2048,
     stream.close()
     p.terminate()
 
+    if debug:
+        print(tol_p * freq, freq, tol_m * freq)
+
     return did_found
+
 
 def note_freq(halftone_from_la, lahz=440):
     '''
@@ -156,6 +165,7 @@ def note_freq(halftone_from_la, lahz=440):
     freq = 2 ** (halftone_from_la / 12) * lahz
 
     return freq
+
 
 def paint_note(position, current=12):
     '''
@@ -221,6 +231,7 @@ def paint_note(position, current=12):
     s += paint_note(position, current - 1)
     return s
 
+
 def main():
     '''
     Train playing the guitar from sheet music
@@ -228,6 +239,7 @@ def main():
 
     n_notes = 10
     record_seconds = 10
+    debug_notes = None
 
     for _ in range(n_notes):
 
@@ -240,8 +252,14 @@ def main():
         s = paint_note(POSITIONS[note_name])
         print(s)
 
+        # Check for debugging
+        if debug_notes is None:
+            debug = False
+        elif note_name in debug_notes:
+            debug = True
+
         is_found = find_frequency(note_freq(note_tone), n_consecutive=8,
-                                  record_seconds=record_seconds)
+                                  record_seconds=record_seconds, debug=debug)
 
         # Feedback
         if is_found:
@@ -249,6 +267,7 @@ def main():
         else:
             s = "Sorry, that was not the note"
         print(s)
+
 
 if __name__ == "__main__":
     main()
