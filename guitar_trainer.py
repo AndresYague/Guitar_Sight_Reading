@@ -54,20 +54,20 @@ POSITIONS = {
         }
 
 
-def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=2048,
-                   chunkps=16, debug=False):
+def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=1024,
+                   chunkps=2, debug=False):
     '''
     Keep recording until freq is found a n_consecutive number of times,
     consecutively
 
     record_seconds is the maximum record time
     chunk is the number of byte strings to get
-    chunksps is how many chunks in a seconds to record
+    chunksps is how many chunks in a second to record
     '''
 
     # Define the tolerance of quarter tone
-    tol_p = 2 ** (1 / 18)
-    tol_m = 2 ** (-1 / 18)
+    tol_p = 2 ** (1 / 24)
+    tol_m = 2 ** (-1 / 24)
 
     # Take 32 bits for high amplitudes
     format_ = pyaudio.paInt32
@@ -267,7 +267,7 @@ def main():
         elif note_name in debug_notes:
             debug = True
 
-        is_found = find_frequency(note_freq(note_tone), n_consecutive=8,
+        is_found = find_frequency(note_freq(note_tone), n_consecutive=3,
                                   record_seconds=record_seconds, debug=debug)
 
         # Feedback
