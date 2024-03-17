@@ -180,17 +180,27 @@ def note_freq(halftone_from_la, lahz=440):
 def paint_note(position, current=12):
     '''
     Paint the chosen note to the terminal
+
+    Lower "current" until "position" is found, there the
+    note can be written. Continue until completing the pentagram.
     '''
+
+    # Start building from the top down.
+    # The highest possible position is
+    # +12, but we only need to put extra lines
+    # up top from +8 (la).
 
     s = ""
 
-    # At this point we are done
+    # At this point we are done, there is no lower note for Guitar
     if current < -9:
         return s
 
+    # Above the pentagram, only paint if the note is above us
     if current > 7 and position < current:
         return paint_note(position, current - 1)
 
+    # Done, we are below the pentagram and note was painted already
     if current < -3 and position > current:
         return s
 
@@ -199,11 +209,6 @@ def paint_note(position, current=12):
     note = 'o'
     breakln = '\n'
     put_note = current == position
-
-    # Start building from the top down.
-    # The highest possible position is
-    # +12, but we only need to put extra lines
-    # up top from +8 (la).
 
     # Define the functions that will paint the note
     def line_extra(put_note):
@@ -221,16 +226,15 @@ def paint_note(position, current=12):
     if current == 0:
         s = "S"
 
-    if current > 7 or current < -3:
-        if (current % 2) == 0:
+    # Put a line at even positions and a blank at odd positions
+    # Put "extra lines" if out of the pentagram
+    if (current % 2) == 0:
+        if current > 7 or current < -3:
             s += line_extra(put_note)
         else:
-            s += line_blank(put_note)
-    else:
-        if (current % 2) == 0:
             s += line_normal(put_note)
-        else:
-            s += line_blank(put_note)
+    else:
+        s += line_blank(put_note)
 
     s += paint_note(position, current - 1)
     return s
