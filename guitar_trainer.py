@@ -85,6 +85,9 @@ def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=1024,
     total_time = 0
     dt = None
 
+    averaged_input = None
+    n_inputs = 0
+
     # Record
     found_consecutive = 0
     did_found = False
@@ -109,24 +112,28 @@ def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=1024,
         spectrum = np.fft.fft(amplitude)
         spectrum_norm = np.sqrt(spectrum.real ** 2 + spectrum.imag ** 2)
 
+        # Increase number of averages
+        n_inputs += 1
+
+        # Create or update average
+        if averaged_input is None:
+            averaged_input = spectrum_norm
+        else:
+            average_update = (spectrum_norm - averaged_input) / n_inputs
+            averaged_input += average_update
+
         # Find the index of the highest frequency component
-        index = np.argmax(spectrum_norm)
+        index = np.argmax(averaged_input)
 
         # Also find the next highest frequency
         try:
-            index2 = np.argmax(spectrum_norm[:index - 1])
+            index2 = np.argmax(averaged_input[:index - 1])
         except ValueError:
             index2 = 0
 
         # Retrieve the values associated with the index
         max_freq = np.abs(frequency[index])
         max_freq2 = np.abs(frequency[index2])
-        max_spec = spectrum_norm[index]
-
-        if debug:
-            plt.plot(frequency, spectrum_norm, "o-")
-            plt.xlim(0, 1000)
-            plt.show()
 
         if debug:
             s = f"max_freq = {max_freq:.2f} Hz; max_freq2 = {max_freq2:.2f} Hz"
@@ -161,7 +168,15 @@ def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=1024,
     p.terminate()
 
     if debug:
-        print(tol_p * freq, freq, tol_m * freq)
+        s = "Matching frequecy range: "
+        s += f"{tol_p * freq:.2f} {freq:.2f} {tol_m * freq:.2f}"
+        print(s)
+
+        plt.plot(frequency, averaged_input, "o-")
+        plt.ylabel("Averaged input")
+        plt.xlabel("Frequency (Hz)")
+        plt.xlim(0, 1000)
+        plt.show()
 
     return did_found
 
