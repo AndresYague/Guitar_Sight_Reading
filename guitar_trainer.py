@@ -100,6 +100,10 @@ def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=2048,
         if dt is None:
             dt = time / amplitude.shape[0]
             frequency = np.fft.fftfreq(amplitude.shape[0], d=dt)
+            if debug:
+                dfreq = frequency[1] - frequency[0]
+                s = f"dt = {dt:.2e} s; dfreq = {dfreq:.2e} Hz"
+                print(s)
 
         # Perform the fft and take the norm of it
         spectrum = np.fft.fft(amplitude)
@@ -120,8 +124,14 @@ def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=2048,
         max_spec = spectrum_norm[index]
 
         if debug:
-            s = f"{max_freq:.2f} {max_spec:.2e}"
-            print(s, max_freq2)
+            plt.plot(frequency, spectrum_norm, "o-")
+            plt.xlim(0, 1000)
+            plt.show()
+
+        if debug:
+            s = f"max_freq = {max_freq:.2f} Hz; max_freq2 = {max_freq2:.2f} Hz"
+            s += f" objective frequency = {freq:.2f} Hz"
+            print(s)
 
         # Check the frequency ratio
         ratio = max_freq / freq
@@ -188,45 +198,39 @@ def paint_note(position, current=12):
     line = '-'
     note = 'o'
     breakln = '\n'
-
-    def blank_note():
-        return 13 * blank + note + breakln
-    def line_note_extra():
-        return 10 * blank + 3 * line + note + 3 * line + breakln
-    def line_note():
-        return 13 * line + note + 13 * line + breakln
-    def line_empty_extra():
-        return 10 * blank + 7 * line + breakln
-    def line_empty():
-        return 27 * line + breakln
+    put_note = current == position
 
     # Start building from the top down.
     # The highest possible position is
     # +12, but we only need to put extra lines
     # up top from +8 (la).
 
+    # Define the functions that will paint the note
+    def line_extra(put_note):
+        character = note if put_note else line
+        return 10 * blank + 3 * line + character + 3 * line + breakln
+
+    def line_normal(put_note):
+        character = note if put_note else line
+        return 13 * line + character + 13 * line + breakln
+
+    def line_blank(put_note):
+        character = note if put_note else blank
+        return 13 * blank + character + breakln
+
     if current == 0:
         s = "S"
 
-    if current == position:
-        if current > 7 or current < -3:
-            if (current % 2) == 0:
-                s += line_note_extra()
-            else:
-                s += blank_note()
+    if current > 7 or current < -3:
+        if (current % 2) == 0:
+            s += line_extra(put_note)
         else:
-            if (current % 2) == 0:
-                s += line_note()
-            else:
-                s += blank_note()
+            s += line_blank(put_note)
     else:
         if (current % 2) == 0:
-            if current > 7 or current < -3:
-                s += line_empty_extra()
-            else:
-                s += line_empty()
+            s += line_normal(put_note)
         else:
-            s += breakln
+            s += line_blank(put_note)
 
     s += paint_note(position, current - 1)
     return s
@@ -241,10 +245,15 @@ def main():
     record_seconds = 10
     debug_notes = None
 
+    if debug_notes is None:
+        notes_choice = list(NOTES.keys())
+    else:
+        notes_choice = debug_notes
+
     for _ in range(n_notes):
 
         # Choose random note
-        note_name = np.random.choice(list(NOTES.keys()))
+        note_name = np.random.choice(notes_choice)
         note_tone = NOTES[note_name]
 
         # Paint the chosen note to the terminal
