@@ -55,7 +55,7 @@ POSITIONS = {
 
 
 def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=1024,
-                   chunkps=2, debug=False):
+                   chunkps=16, debug=False):
     '''
     Keep recording until freq is found a n_consecutive number of times,
     consecutively
@@ -66,8 +66,8 @@ def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=1024,
     '''
 
     # Define the tolerance of quarter tone
-    tol_p = 2 ** (1 / 24)
-    tol_m = 2 ** (-1 / 24)
+    tol_p = 2 ** (1 / 36)
+    tol_m = 2 ** (-1 / 36)
 
     # Take 32 bits for high amplitudes
     format_ = pyaudio.paInt32
@@ -85,8 +85,9 @@ def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=1024,
     total_time = 0
     dt = None
 
-    averaged_input = None
-    n_inputs = 0
+    # Keep adding to the amplitude
+    total_amplitude = []
+    amplitude_length = 0
 
     # Record
     found_consecutive = 0
@@ -99,35 +100,29 @@ def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=1024,
         # Transform to int32
         amplitude = np.frombuffer(amplitude, dtype="int32")
 
-        # Define dt if not defined already
-        if dt is None:
-            dt = time / amplitude.shape[0]
-            frequency = np.fft.fftfreq(amplitude.shape[0], d=dt)
-            if debug:
-                dfreq = frequency[1] - frequency[0]
-                s = f"dt = {dt:.2e} s; dfreq = {dfreq:.2e} Hz"
-                print(s)
+        # Update values
+        total_amplitude += list(amplitude)
+        amplitude_length += amplitude.shape[0]
+        total_time += time
+
+        # Define new
+        dt = total_time / amplitude_length
+        frequency = np.fft.fftfreq(amplitude_length, d=dt)
+        if debug:
+            dfreq = frequency[1] - frequency[0]
+            s = f"dt = {dt:.2e} s; dfreq = {dfreq:.2e} Hz"
+            print(s)
 
         # Perform the fft and take the norm of it
-        spectrum = np.fft.fft(amplitude)
+        spectrum = np.fft.fft(total_amplitude)
         spectrum_norm = np.sqrt(spectrum.real ** 2 + spectrum.imag ** 2)
 
-        # Increase number of averages
-        n_inputs += 1
-
-        # Create or update average
-        if averaged_input is None:
-            averaged_input = spectrum_norm
-        else:
-            average_update = (spectrum_norm - averaged_input) / n_inputs
-            averaged_input += average_update
-
         # Find the index of the highest frequency component
-        max_index = np.argmax(averaged_input)
+        max_index = np.argmax(spectrum_norm)
 
         # Also find the next highest frequency
         try:
-            max_index2 = np.argmax(averaged_input[:max_index - 1])
+            max_index2 = np.argmax(spectrum_norm[:max_index - 1])
         except ValueError:
             max_index2 = 0
 
@@ -160,7 +155,6 @@ def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=1024,
             break
 
         # If time exceeds recording time, break
-        total_time += time
         if total_time > record_seconds:
             break
 
@@ -172,7 +166,7 @@ def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=1024,
         s += f"{tol_p * freq:.2f} {freq:.2f} {tol_m * freq:.2f}"
         print(s)
 
-        plt.plot(frequency, averaged_input, "o-")
+        plt.plot(frequency, spectrum_norm, "o-")
         plt.ylabel("Averaged input")
         plt.xlabel("Frequency (Hz)")
         plt.xlim(0, 1000)
