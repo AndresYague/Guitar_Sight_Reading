@@ -123,17 +123,17 @@ def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=1024,
             averaged_input += average_update
 
         # Find the index of the highest frequency component
-        index = np.argmax(averaged_input)
+        max_index = np.argmax(averaged_input)
 
         # Also find the next highest frequency
         try:
-            index2 = np.argmax(averaged_input[:index - 1])
+            max_index2 = np.argmax(averaged_input[:max_index - 1])
         except ValueError:
-            index2 = 0
+            max_index2 = 0
 
         # Retrieve the values associated with the index
-        max_freq = np.abs(frequency[index])
-        max_freq2 = np.abs(frequency[index2])
+        max_freq = np.abs(frequency[max_index])
+        max_freq2 = np.abs(frequency[max_index2])
 
         if debug:
             s = f"max_freq = {max_freq:.2f} Hz; max_freq2 = {max_freq2:.2f} Hz"
