@@ -55,7 +55,7 @@ POSITIONS = {
 
 
 def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=1024,
-                   chunkps=16, debug=False):
+                   chunkps=16, minimum_df=8e-1, debug=False):
     '''
     Keep recording until freq is found a n_consecutive number of times,
     consecutively
@@ -86,8 +86,9 @@ def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=1024,
     dt = None
 
     # Keep adding to the amplitude
-    total_amplitude = []
+    amplitude_list = []
     amplitude_length = 0
+    rolling_time = 0
 
     # Record
     found_consecutive = 0
@@ -101,20 +102,21 @@ def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=1024,
         amplitude = np.frombuffer(amplitude, dtype="int32")
 
         # Update values
-        total_amplitude += list(amplitude)
+        amplitude_list.append(list(amplitude))
         amplitude_length += amplitude.shape[0]
-        total_time += time
+        rolling_time += time
+        rolling_amplitude = sum(amplitude_list, [])
 
-        # Define new
-        dt = total_time / amplitude_length
+        # Define new dt and frequency
+        dt = rolling_time / amplitude_length
         frequency = np.fft.fftfreq(amplitude_length, d=dt)
+        dfreq = frequency[1] - frequency[0]
         if debug:
-            dfreq = frequency[1] - frequency[0]
             s = f"dt = {dt:.2e} s; dfreq = {dfreq:.2e} Hz"
             print(s)
 
         # Perform the fft and take the norm of it
-        spectrum = np.fft.fft(total_amplitude)
+        spectrum = np.fft.fft(rolling_amplitude)
         spectrum_norm = np.sqrt(spectrum.real ** 2 + spectrum.imag ** 2)
 
         # Find the index of the highest frequency component
@@ -154,7 +156,15 @@ def find_frequency(freq, n_consecutive=5, record_seconds=5, chunk=1024,
             did_found = True
             break
 
+        # Check if dfreq is smaller than minimum. In that case,
+        # advance the rolling values
+        if dfreq < minimum_df:
+            amplitude_list.pop(0)
+            rolling_time -= time
+            amplitude_length -= amplitude.shape[0]
+
         # If time exceeds recording time, break
+        total_time += time
         if total_time > record_seconds:
             break
 
