@@ -1,7 +1,7 @@
 """PyAudio Example: Play a wave file."""
 
-import wave
 import sys
+import wave
 
 import pyaudio
 
@@ -30,4 +30,3 @@ with wave.open(sys.argv[1], 'rb') as wf:
 
     # Release PortAudio system resources (5)
     p.terminate()
-
